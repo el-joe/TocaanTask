@@ -8,7 +8,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
+use App\Services\PaymentService as ServicesPaymentService;
 use Illuminate\Http\Request;
+use PaymentService;
 
 class PaymentController extends Controller
 {
@@ -37,7 +39,8 @@ class PaymentController extends Controller
             throw new \Exception("Payment class {$paymentClass} not found.");
         }
 
-        $paymentService = new $paymentClass();
+        $paymentService = new ServicesPaymentService(new $paymentClass());
+
         $payResponse = $paymentService->pay([
             'order_id' => $order->id,
             'amount' => $order->grand_total,
@@ -69,7 +72,7 @@ class PaymentController extends Controller
             throw new \Exception("Payment class {$paymentClass} not found.");
         }
 
-        $paymentService = new $paymentClass();
+        $paymentService = new ServicesPaymentService(new $paymentClass());
         $callbackResponse = $paymentService->callback($transactionId);
 
         $payment->update([
