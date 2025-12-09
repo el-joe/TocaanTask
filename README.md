@@ -1,59 +1,113 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Extendable Order and Payment Management API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+This Laravel API manages orders and payments with clean architecture and an extensible payment gateway system (strategy pattern). It supports JWT authentication, RESTful endpoints, validation, pagination, and feature/unit tests.
 
-## About Laravel
+## Setup Instructions
+- Requirements: PHP 8.2+, Composer, MySQL
+- Environment:
+	- Copy `.env.example` to `.env` and set DB and mail settings
+	- Important keys: `JWT_SECRET`, gateway configs in database "table payment_methods"
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+```bash
+composer install
+php artisan key:generate
+php artisan jwt:secret
+php artisan migrate --seed
+php artisan serve
+php artisan test -> for running tests
+php artisan queue:work -> for processing jobs (e.g., sending mails)
+```
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Authentication
+- JWT based
+- Endpoints:
+	- `POST /api/site/register` → create customer
+	- `POST /api/site/login` → issue JWT
+	- `POST /api/site/logout` → revoke JWT
+	- `GET /api/site/profile` (auth:customer)
+	- `PUT /api/site/profile` (auth:customer)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Orders (Admin and Site)
+- Admin routes (auth:admin):
+	- `GET /api/admin/orders` → list with pagination, filter by `status`
+	- `POST /api/admin/orders/create` → create order (user, items)
+	- `PUT /api/admin/orders/{order}` → update
+	- `DELETE /api/admin/orders/{order}` → delete (blocked if payments exist)
+	- Items: `POST /api/admin/orders/{order}/add-item`, `POST /api/admin/orders/{order}/update-item/{itemId}`, `DELETE /api/admin/orders/{order}/remove-item/{itemId}`
+- Site routes (auth:customer):
+	- `GET /api/site/orders` → customer’s orders
+	- `POST /api/site/orders` → create customer order
+	- `GET /api/site/payments` → list payments for customer
 
-## Learning Laravel
+### Order Payload
+```json
+{
+	"user_id": 1,
+	"status": "pending",
+	"items": [
+		{ "product_id": 10, "quantity": 2, "price": 99.99 }
+	]
+}
+```
+- Server calculates totals via `order_items.qty * order_items.price` and accessor `sub_total`/`grand_total`.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Payments
+- Process payment (example; check controller):
+	- `POST /api/site/payments` or `POST /api/admin/orders/{order}/pay` (depending on your controllers)
+	- Fields: `payment_id`, `order_id`, `method` (e.g. `paypal`, `stripe`, `youssef`), `status` (`pending`, `success`, `failed`)
+- Business rules:
+	- Payments can only be processed for orders with status `confirmed`
+	- Orders cannot be deleted if associated payments exist
+- View payments:
+	- `GET /api/site/payments` (customer)
+	- Admin can query payments under admin endpoints
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Extensible Gateways (Strategy Pattern)
+- Location:
+	- Interfaces: `app/Interfaces/PaymentMethodInterface.php`
+	- Strategies: `app/Payments/*` (e.g., `PaypalPayment.php`, `StripePayment.php`, `YoussefPayment.php`)
+	- Service: `app/Services/PaymentService.php`
 
-## Laravel Sponsors
+- How it works:
+	- Controllers call `PaymentService` with `method` (string)
+	- `PaymentService` resolves the appropriate strategy (implements `PaymentMethodInterface`) and executes `process(order, payload)`
+    - Into database we have `payment_methods` table to store available methods and their config (e.g., required_fields JSON ["client_id","secret"] then we need to add these keys into configuration columns eg. {"secret": "your_secret","client_id": "your_client_id"})
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- Add a new gateway in 3 steps:
+	1. Insert a record in `payment_methods` with:
+	   - `name`, `slug` (e.g., `paypal`), and `class` (short PHP class name like `PaypalPayment`)
+	   - `required_fields` array (e.g., `["client_id","secret"]`)
+	   - `configuration` JSON (e.g., `{ "client_id": "your_id", "secret": "your_secret" }`)
+	2. Create `app/Payments/YourGatewayPayment.php` implementing `PaymentMethodInterface` and read config via `$this->gateway->configuration`. Implement `pay`, `callback`, and `refund`.
+	3. Use the gateway `slug` in your payment requests; the service resolves the gateway by the DB entry and instantiates the corresponding class. `.env` keys are optional if you prefer environment variables over DB config.
 
-### Premium Partners
+## Validation & Errors
+- FormRequests in `app/Http/Requests` validate inputs
+- Meaningful JSON errors with appropriate HTTP status codes (400/422/401/403/404)
+- Pagination via standard Laravel paginator (`page`, `per_page`)
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Testing
+- Feature tests eg .:
+	- Admin orders: `tests/Feature/Api/Admin/OrderTest.php`
+	- Site routes: `tests/Feature/Api/Site/SiteRoutesTest.php`
+- Run:
+```bash
+php artisan test
+```
 
-## Contributing
+## Postman Collection
+- A Postman collection should be included under `docs/postman_collection.json` (add yours if not present)
+- Import collection and set `{{base_url}}` (e.g., `http://127.0.0.1:8000`)
+- Use `{{jwt}}` in `Authorization: Bearer {{jwt}}` after login
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Notes & Assumptions
+- Mail sending on order confirmation is triggered (`OrderPaymentMail`) for demo purposes
+- Products have soft-delete; orders/items use simple totals without taxes
+- Payment processing is simulated; integrate real SDKs in gateway classes as needed
 
-## Code of Conduct
+## Adding Gateways – Checklist
+- Class implements `PaymentMethodInterface`
+- Reads config from `.env` or DB (`config/services.php`)
+- Registered in provider mapping
+- Add tests in `tests/Feature` for gateway success/failure paths
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
