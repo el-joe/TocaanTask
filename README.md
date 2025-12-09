@@ -107,7 +107,5 @@ php artisan test
 
 ## Adding Gateways – Checklist
 - Class implements `PaymentMethodInterface`
-- Reads config from `.env` or DB (`config/services.php`)
-- Registered in provider mapping
 - Add tests in `tests/Feature` for gateway success/failure paths
 
