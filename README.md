@@ -14,8 +14,8 @@ php artisan key:generate
 php artisan jwt:secret
 php artisan migrate --seed
 php artisan serve
-php artisan test -> for running tests
-php artisan queue:work -> for processing jobs (e.g., sending mails)
+php artisan test # for running tests
+php artisan queue:work # for processing jobs (e.g., sending mails)
 ```
 
 ## Authentication
