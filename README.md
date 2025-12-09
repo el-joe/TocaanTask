@@ -46,7 +46,7 @@ php artisan queue:work # for processing jobs (e.g., sending mails)
 	"user_id": 1,
 	"status": "pending",
 	"items": [
-		{ "product_id": 10, "quantity": 2, "price": 99.99 }
+		{ "product_id": 10, "qty": 2, "price": 99.99 }
 	]
 }
 ```
