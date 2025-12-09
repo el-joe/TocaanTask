@@ -7,6 +7,7 @@ This Laravel API manages orders and payments with clean architecture and an exte
 - Environment:
 	- Copy `.env.example` to `.env` and set DB and mail settings
 	- Important keys: `JWT_SECRET`, gateway configs in database "table payment_methods"
+    - Make sure u had changed MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, MAIL_ENCRYPTION, MAIL_FROM_ADDRESS, MAIL_FROM_NAME in .env file to enable email sending
 
 ```bash
 composer install
