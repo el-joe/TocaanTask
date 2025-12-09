@@ -29,7 +29,7 @@ class ProductController extends Controller
     {
         $product = Product::create($request->validated());
 
-        return apiResource(ProductResource::class, $product, 200);
+        return apiResource(ProductResource::class, $product, 200,"Product created successfully");
     }
 
 
@@ -41,7 +41,7 @@ class ProductController extends Controller
         $product = Product::findOrFail($id);
         $product->update($request->validated());
 
-        return apiResource(ProductResource::class, $product, 200);
+        return apiResource(ProductResource::class, $product, 200,"Product updated successfully");
     }
 
     /**
@@ -52,6 +52,8 @@ class ProductController extends Controller
         $product = Product::findOrFail($id);
         $product->delete();
 
-        return response()->json([], Response::HTTP_NO_CONTENT);
+        return response()->json([
+            'message' => 'Product deleted successfully'
+        ], Response::HTTP_NO_CONTENT);
     }
 }

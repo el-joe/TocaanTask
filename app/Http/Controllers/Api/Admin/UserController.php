@@ -29,7 +29,7 @@ class UserController extends Controller
     {
         $user = User::create($request->validated());
 
-        return apiResource(UserResource::class, $user, 200);
+        return apiResource(UserResource::class, $user, 200,"User created successfully");
     }
 
 
@@ -41,7 +41,7 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         $user->update($request->validated());
 
-        return apiResource(UserResource::class, $user, 200);
+        return apiResource(UserResource::class, $user, 200,"User updated successfully");
     }
 
     /**
@@ -52,6 +52,8 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         $user->delete();
 
-        return response()->json([], Response::HTTP_NO_CONTENT);
+        return response()->json([
+            'message' => 'User deleted successfully'
+        ], Response::HTTP_NO_CONTENT);
     }
 }

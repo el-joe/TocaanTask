@@ -34,7 +34,7 @@ class PaymentMethodController extends Controller
 
         $paymentMethod = PaymentMethod::create($request->all());
 
-        return apiResource(PaymentMethodResource::class, $paymentMethod);
+        return apiResource(PaymentMethodResource::class, $paymentMethod,200,"Payment method created successfully");
     }
 
     /**
@@ -53,7 +53,7 @@ class PaymentMethodController extends Controller
 
         $paymentMethod->update($request->all());
 
-        return apiResource(PaymentMethodResource::class, $paymentMethod, 200);
+        return apiResource(PaymentMethodResource::class, $paymentMethod, 200,"Payment method updated successfully");
     }
 
     /**
@@ -64,6 +64,8 @@ class PaymentMethodController extends Controller
         $paymentMethod = PaymentMethod::findOrFail($id);
         $paymentMethod->delete();
 
-        return response()->json([], Response::HTTP_NO_CONTENT);
+        return response()->json([
+            "message" => "Payment method deleted successfully"
+        ], Response::HTTP_NO_CONTENT);
     }
 }

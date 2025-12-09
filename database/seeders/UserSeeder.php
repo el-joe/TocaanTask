@@ -13,6 +13,14 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
+        User::firstOrCreate([
+            'email' => 'eljoe1717@gmail.com',
+        ],[
+            'name' => 'Youssef',
+            'email' => 'eljoe1717@gmail.com',
+            'phone' => '+201558099183',
+            'password' => '123456'
+        ]);
         User::factory()->count(10)->create();
     }
 }

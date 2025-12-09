@@ -21,6 +21,7 @@ class OrderResource extends JsonResource
             'sub_total' => $this->sub_total,
             'grand_total' => $this->grand_total,
             'items' => OrderItemResource::collection($this->whenLoaded('orderItems')),
+            'payments' => PaymentResource::collection($this->whenLoaded('payments')),
         ];
     }
 }

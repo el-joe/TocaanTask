@@ -1,6 +1,6 @@
 <?php
 
-function apiResourceCollection($resource, $collection)
+function apiResourceCollection($resource, $collection , $message = null)
 {
     // if $collection is paginated
     if (method_exists($collection, 'items')) {
@@ -18,13 +18,20 @@ function apiResourceCollection($resource, $collection)
                 'prev'  => $collection->previousPageUrl(),
                 'next'  => $collection->nextPageUrl(),
             ],
+            'message' => $message ?? null,
         ]);
     }
 
-    return response()->json($resource::collection($collection));
+    return response()->json([
+        'data' => $resource::collection($collection),
+        'message' => $message ?? null,
+    ]);
 }
 
-function apiResource($resource, $model, $status = 200)
+function apiResource($resource, $model, $status = 200, $message = null)
 {
-    return response()->json(new $resource($model), $status);
+    return response()->json([
+        'data' => new $resource($model),
+        'message' => $message ?? null,
+    ], $status);
 }

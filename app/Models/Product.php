@@ -15,5 +15,12 @@ class Product extends Model
         'name',
         'description',
         'price',
+        'active'
     ];
+
+    // Scopes
+    public function scopeActive($query)
+    {
+        return $query->where('active', true);
+    }
 }
